@@ -1,36 +1,19 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { Language } from "../types";
 
-// Helper to debug key issues without exposing the full key
-const debugKey = (key: string | undefined) => {
-  if (!key) return "MISSING";
-  if (key.length < 10) return "INVALID_SHORT";
-  return `${key.substring(0, 4)}...${key.substring(key.length - 4)}`;
-};
+// 1. USE THE CORRECT VITE ENV VARIABLE
+const API_KEY = import.meta.env.VITE_GOOGLE_API_KEY || "";
 
-const apiKey = process.env.API_KEY || "";
-console.log("Gemini API Key Status:", debugKey(apiKey));
-
-// Initialize with fallback
-const ai = new GoogleGenerativeAI({ apiKey: apiKey });
+const genAI = new GoogleGenerativeAI(API_KEY);
 
 export const getHealthAdvice = async (
   query: string,
   language: Language,
-  contextData: string,
+  contextData: string
 ): Promise<string> => {
-  // Runtime check for API Key
-  if (!process.env.API_KEY) {
-    console.error(
-      "CRITICAL ERROR: API_KEY is missing from environment variables.",
-    );
-    console.error(
-      "If on Netlify: Go to Site Settings > Environment Variables > Add 'API_KEY'.",
-    );
-
-    return language === Language.AMHARIC
-      ? "የAI አገልግሎት ቁልፍ (API Key) አልተሞላም። እባክዎ አስተዳዳሪውን ያናግሩ።"
-      : "Configuration Error: API Key is missing. Please set the API_KEY environment variable in Netlify.";
+  if (!API_KEY) {
+    console.error("CRITICAL ERROR: VITE_GOOGLE_API_KEY is missing.");
+    return "Configuration Error: API Key is missing. Check Netlify settings.";
   }
 
   try {
@@ -46,27 +29,25 @@ export const getHealthAdvice = async (
       Context about the user: ${contextData}
     `;
 
-    // Ensure we use the correct model for text generation
-    const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
-      contents: query,
-      config: {
-        systemInstruction: systemInstruction,
-      },
+    // ✅ UPDATED TO GEMINI 2.5 PRO
+    const model = genAI.getGenerativeModel({
+      model: "gemini-2.5-pro", // This is the model you asked for
+      systemInstruction: systemInstruction,
     });
 
-    return response.text || "I'm here to support you. Please try asking again.";
-  } catch (error: any) {
-    console.error("Gemini API Error Details:", error);
+    const result = await model.generateContent(query);
+    const response = await result.response;
+    
+    return response.text();
 
-    // Check for specific 400 error which usually means invalid key or model
-    if (
-      error.toString().includes("400") ||
-      error.toString().includes("API key not valid")
-    ) {
-      return language === Language.AMHARIC
-        ? "የAPI Key ችግር አለ። እባክዎ በትክክል መሞላቱን ያረጋግጡ።"
-        : "API Key Error: The key provided is invalid or expired. Please check Netlify settings.";
+  } catch (error: any) {
+    console.error("Gemini API Error:", error);
+
+    // Specific error handling for Quota limits (429)
+    if (error.message?.includes("429") || error.message?.includes("Quota")) {
+       return language === Language.AMHARIC
+        ? "በጣም ብዙ ጥያቄዎች ስለተላኩ እባክዎ ትንሽ ይጠብቁ።"
+        : "Traffic is high. Please wait a minute and try again.";
     }
 
     return language === Language.AMHARIC
