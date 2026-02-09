@@ -2,7 +2,8 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { Language } from "../types";
 
 // 1. USE THE CORRECT VITE ENV VARIABLE
-const API_KEY = import.meta.env.VITE_GOOGLE_API_KEY || "";
+// Cast to 'any' to bypass the TypeScript check
+const API_KEY = (import.meta as any).env.VITE_GOOGLE_API_KEY || "";
 
 const genAI = new GoogleGenerativeAI(API_KEY);
 
