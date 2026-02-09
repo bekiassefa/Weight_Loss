@@ -445,7 +445,12 @@ const App: React.FC = () => {
           </div>
         );
       default:
-        return <Dashboard user={user} language={language} onNavigate={setCurrentPage} onLogWeight={handleLogWeight} />;
+        return <Dashboard user={user} language={language} onNavigate={setCurrentPage} onLogWeight={handleLogWeight} 
+        /* ADD THESE LINES BELOW */
+  completedMealsCount={Array.from(completedMealsSet).filter((k: string) => k.startsWith(currentDayKey)).length}
+  completedExercisesCount={completedChallengeDaysSet.size} 
+  currentDay={currentDayKey}
+        />;
     }
   };
 
