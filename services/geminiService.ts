@@ -32,7 +32,7 @@ export const getHealthAdvice = async (
 
     // ✅ UPDATED TO GEMINI 2.5 PRO
     const model = genAI.getGenerativeModel({
-      model: "gemini-2.5-pro", // This is the model you asked for
+      model: "gemini-2.5-flash", // This is the model you asked for
       systemInstruction: systemInstruction,
     });
 
